@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -19,8 +19,6 @@ import {
   CalendarCheck,
   Info,
 } from "lucide-react";
-
-const API = "http://localhost:3000/api";
 
 const getCurrentUser = () => {
   try {
@@ -347,10 +345,13 @@ export default function LaporanPanenAdmin() {
   const tryGet = async (paths) => {
     for (const path of paths) {
       try {
-        const res = await axios.get(`${API}${path}`);
+        const res = await api.get(path);
         return res.data;
-      } catch {
-        // lanjut ke endpoint cadangan
+      } catch (error) {
+        console.log(
+          `Endpoint ${path} gagal:`,
+          error.response?.data || error.message
+        );
       }
     }
 

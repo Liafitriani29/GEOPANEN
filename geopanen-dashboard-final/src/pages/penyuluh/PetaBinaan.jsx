@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 
 import {
   MapContainer,
@@ -14,7 +14,6 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API = "http://localhost:3000/api";
 const DEFAULT_CENTER = [-7.68, 110.85];
 
 // Penyuluh hanya memantau petani/lahan binaan.
@@ -413,7 +412,7 @@ export default function PetaBinaan() {
       setLoadingAktivitas(true);
       setAktivitasError("");
 
-      const res = await axios.get(`${API}/notifikasi`, {
+      const res = await api.get(`/notifikasi`, {
         params: {
           user_id: penyuluhId,
           role: "penyuluh",
@@ -435,7 +434,7 @@ export default function PetaBinaan() {
 
   const buatAktivitas = async (pesan, tipe = "aktivitas") => {
     try {
-      await axios.post(`${API}/notifikasi`, {
+      await api.post(`/notifikasi`, {
         user_id: penyuluhId,
         role: "penyuluh",
         tipe,
@@ -451,7 +450,7 @@ export default function PetaBinaan() {
 
   const fetchPrediksi = async () => {
     try {
-      const res = await axios.get(`${API}/prediksi`);
+      const res = await api.get(`/prediksi`);
       const rows = normalizeApiList(res.data);
 
       setPrediksiList(rows);
@@ -469,14 +468,14 @@ export default function PetaBinaan() {
       setError("");
 
       const [mapRes, predRows] = await Promise.all([
-        axios.get(`${API}/map-binaan`),
+        api.get(`/map-binaan`),
         fetchPrediksi(),
       ]);
 
       let rows = normalizeApiList(mapRes.data);
 
       if (rows.length === 0) {
-        const fallbackRes = await axios.get(`${API}/lahan`);
+        const fallbackRes = await api.get(`/lahan`);
         rows = normalizeApiList(fallbackRes.data);
       }
 
@@ -869,7 +868,7 @@ export default function PetaBinaan() {
       const payload = buildPayload();
 
       if (modalMode === "create") {
-        await axios.post(`${API}/lahan`, payload);
+        await api.post(`/lahan`, payload);
 
         await buatAktivitas(
           `Tambah lahan ${payload.nama_lahan} untuk petani ${
@@ -882,7 +881,7 @@ export default function PetaBinaan() {
       }
 
       if (modalMode === "edit") {
-        await axios.put(`${API}/lahan/${form.id}`, payload);
+        await api.put(`/lahan/${form.id}`, payload);
 
         await buatAktivitas(
           `Update lahan ${payload.nama_lahan} milik ${
@@ -920,7 +919,7 @@ export default function PetaBinaan() {
     if (!ok) return;
 
     try {
-      await axios.delete(`${API}/lahan/${item.id}`);
+      await api.delete(`/lahan/${item.id}`);
 
       await buatAktivitas(
         `Hapus lahan ${item.nama_lahan} milik ${item.nama_petani}`,

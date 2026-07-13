@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import {
   Cell,
   Pie,
@@ -7,8 +7,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-
-const API = "http://localhost:3000/api";
 
 const JENIS_OPTIONS = [
   "Rekomendasi",
@@ -353,7 +351,7 @@ export default function NotifikasiPenyuluh() {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${API}/notifikasi`, {
+      const res = await api.get(`/notifikasi`, {
         params: {
           role: "petani",
           penyuluh_id: penyuluhId,
@@ -409,7 +407,7 @@ export default function NotifikasiPenyuluh() {
       let rows = [];
 
       try {
-        const res = await axios.get(`${API}/penyuluh/petani-binaan`, {
+        const res = await api.get(`/penyuluh/petani-binaan`, {
           params: {
             penyuluh_id: penyuluhId,
           },
@@ -425,7 +423,7 @@ export default function NotifikasiPenyuluh() {
 
       if (rows.length === 0) {
         try {
-          const resMap = await axios.get(`${API}/map-binaan`, {
+          const resMap = await api.get(`/map-binaan`, {
             params: {
               penyuluh_id: penyuluhId,
             },
@@ -446,7 +444,7 @@ export default function NotifikasiPenyuluh() {
 
   const fetchWeather = async () => {
     try {
-      const res = await axios.get(`${API}/cuaca`);
+      const res = await api.get(`/cuaca`);
       setWeather(res.data?.data || INITIAL_WEATHER);
     } catch (err) {
       console.log("GET CUACA ERROR:", err.response?.data || err.message);
@@ -456,7 +454,7 @@ export default function NotifikasiPenyuluh() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API}/notifikasi-template`);
+      const res = await api.get(`/notifikasi-template`);
       setTemplates(safeList(res.data));
     } catch (err) {
       console.log("GET TEMPLATE ERROR:", err.response?.data || err.message);
@@ -778,13 +776,13 @@ export default function NotifikasiPenyuluh() {
       const payload = buildPayload();
 
       if (modalMode === "create") {
-        await axios.post(`${API}/notifikasi`, payload);
+        await api.post(`/notifikasi`, payload);
         setEndDate(getTodayInput());
         alert("Notifikasi berhasil dibuat.");
       }
 
       if (modalMode === "edit" && selectedItem?.id) {
-        await axios.put(`${API}/notifikasi/${selectedItem.id}`, payload);
+        await api.put(`/notifikasi/${selectedItem.id}`, payload);
         setEndDate(getTodayInput());
         alert("Notifikasi berhasil diperbarui.");
       }
@@ -887,10 +885,10 @@ export default function NotifikasiPenyuluh() {
       };
 
       if (templateForm.id) {
-        await axios.put(`${API}/notifikasi-template/${templateForm.id}`, payload);
+        await api.put(`/notifikasi-template/${templateForm.id}`, payload);
         alert("Template berhasil diperbarui.");
       } else {
-        await axios.post(`${API}/notifikasi-template`, payload);
+        await api.post(`/notifikasi-template`, payload);
         alert("Template berhasil dibuat.");
       }
 
@@ -910,7 +908,7 @@ export default function NotifikasiPenyuluh() {
     if (!yakin) return;
 
     try {
-      await axios.delete(`${API}/notifikasi-template/${id}`);
+      await api.delete(`/notifikasi-template/${id}`);
       fetchTemplates();
     } catch (err) {
       console.log("DELETE TEMPLATE ERROR:", err.response?.data || err.message);

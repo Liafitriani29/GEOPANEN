@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import api from "../../services/api";
 
 const MONTHS = [
   "Januari",
@@ -466,8 +464,8 @@ export default function KalenderPenyuluh() {
       setLoadingPetani(true);
       setError("");
 
-      const response = await axios.get(
-        `${API}/penyuluh/petani-binaan`,
+      const response = await api.get(
+        `/penyuluh/petani-binaan`,
         getAxiosConfig(),
       );
 
@@ -523,8 +521,8 @@ export default function KalenderPenyuluh() {
       setOverview(null);
 
       // Sama persis dengan cara Kalender Petani mengambil lahan.
-      const response = await axios.get(
-        `${API}/lahan`,
+      const response = await api.get(
+        `/lahan`,
         getAxiosConfig({
           user_id: petaniId,
           petani_id: petaniId,
@@ -568,8 +566,8 @@ export default function KalenderPenyuluh() {
       setError("");
 
       // Endpoint dan bentuk data sama dengan Kalender Petani.
-      const response = await axios.get(
-        `${API}/kalender/${selectedLahanId}/overview`,
+      const response = await api.get(
+        `/kalender/${selectedLahanId}/overview`,
         getAxiosConfig({
           tanggal: selectedDate,
           bulan: toMonthKey(currentMonth),
@@ -646,8 +644,8 @@ export default function KalenderPenyuluh() {
       setError("");
       setSuccess("");
 
-      await axios.post(
-        `${API}/kalender/${selectedLahanId}/generate`,
+      await api.post(
+        `/kalender/${selectedLahanId}/generate`,
         {
           user_id: Number(selectedPetaniId),
           petani_id: Number(selectedPetaniId),
@@ -706,8 +704,8 @@ export default function KalenderPenyuluh() {
           : "rekomendasi_penyuluh";
 
       // Tersimpan pada tabel kalender_budidaya yang sama dengan Kalender Petani.
-      await axios.post(
-        `${API}/kalender`,
+      await api.post(
+        `/kalender`,
         {
           lahan_id: Number(selectedLahanId),
           sawah_id: Number(selectedLahanId),

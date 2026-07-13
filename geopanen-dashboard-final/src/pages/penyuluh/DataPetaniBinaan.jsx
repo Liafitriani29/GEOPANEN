@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -13,7 +13,6 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API = "http://localhost:3000/api";
 const DEFAULT_CENTER = [-7.68, 110.85];
 
 const REGION_COLORS = [
@@ -457,7 +456,7 @@ export default function DataPetaniBinaan() {
       let rows = [];
 
       try {
-        const res = await axios.get(`${API}/penyuluh/petani-binaan`, {
+        const res = await api.get(`/penyuluh/petani-binaan`, {
           params: {
             penyuluh_id: penyuluhId,
           },
@@ -469,7 +468,7 @@ export default function DataPetaniBinaan() {
       }
 
       if (rows.length === 0) {
-        const fallback = await axios.get(`${API}/map-binaan`, {
+        const fallback = await api.get(`/map-binaan`, {
           params: {
             penyuluh_id: penyuluhId,
           },
@@ -489,7 +488,7 @@ export default function DataPetaniBinaan() {
 
   const fetchAktivitas = async () => {
     try {
-      const res = await axios.get(`${API}/notifikasi`, {
+      const res = await api.get(`/notifikasi`, {
         params: {
           user_id: penyuluhId,
           role: "penyuluh",

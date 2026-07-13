@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-
-const API = "http://localhost:3000/api";
-const AI_API = "http://127.0.0.1:8000";
+import api from "../../services/api";
 
 export default function DatasetAI() {
   const [lahanList, setLahanList] = useState([]);
@@ -22,30 +19,32 @@ export default function DatasetAI() {
 
   const fetchLahan = async () => {
     try {
-      const res = await axios.get(`${API}/lahan`);
+      const res = await api.get("/lahan");
       setLahanList(unwrap(res));
     } catch (err) {
-      console.log("ERROR LAHAN:", err);
+      console.log("ERROR LAHAN:", err.response?.data || err.message);
+      setLahanList([]);
     }
   };
 
   const fetchHasilPrediksi = async () => {
     try {
-      const res = await axios.get(`${API}/prediksi`);
+      const res = await api.get("/prediksi");
       setHasilPrediksi(unwrap(res));
     } catch (err) {
-      console.log("ERROR HASIL:", err);
+      console.log("ERROR HASIL:", err.response?.data || err.message);
+      setHasilPrediksi([]);
     }
   };
 
-  // ================= RUN AI (FIXED FULL FLOW) =================
+  // ================= RUN AI =================
   const handleRunAI = async (lahan) => {
     if (!lahan?.id) {
       alert("ID lahan tidak ditemukan");
       return;
     }
 
-    const ok = confirm(`Jalankan AI untuk ${lahan.nama_lahan}?`);
+    const ok = window.confirm(`Jalankan AI untuk ${lahan.nama_lahan}?`);
     if (!ok) return;
 
     setProcessingId(lahan.id);
@@ -53,31 +52,36 @@ export default function DatasetAI() {
     try {
       console.log("RUN AI:", lahan);
 
-      // 1. HIT NODE (INI YANG SUDAH BENAR)
-      const res = await axios.post(`${API}/prediksi`, {
+      /*
+       * Request dikirim ke Backend Node.js.
+       * Backend Node.js yang meneruskan proses ke FastAPI dan menyimpan hasil.
+       */
+      const res = await api.post("/prediksi", {
         sawah_id: lahan.id,
       });
 
       console.log("HASIL NODE + AI:", res.data);
 
-      // 2. REFRESH DATA SETELAH SAVE OTOMATIS DI BACKEND
-      await fetchHasilPrediksi();
-      await fetchLahan();
-
+      await Promise.all([
+        fetchHasilPrediksi(),
+        fetchLahan(),
+      ]);
     } catch (err) {
-      console.log("ERROR RUN AI:", err.response?.data || err);
+      console.log("ERROR RUN AI:", err.response?.data || err.message);
       alert(err.response?.data?.message || "Gagal menjalankan AI");
+    } finally {
+      setProcessingId(null);
     }
-
-    setProcessingId(null);
   };
 
   // ================= FORMAT =================
   const formatTon = (val) =>
-    isNaN(Number(val)) ? "-" : Number(val).toFixed(2);
+    Number.isNaN(Number(val)) ? "-" : Number(val).toFixed(2);
 
   const formatNumber = (val) =>
-    isNaN(Number(val)) ? "-" : Number(val).toLocaleString("id-ID");
+    Number.isNaN(Number(val))
+      ? "-"
+      : Number(val).toLocaleString("id-ID");
 
   // ================= UI =================
   return (
@@ -100,23 +104,44 @@ export default function DatasetAI() {
           </thead>
 
           <tbody>
-            {lahanList.map((l) => (
-              <tr key={l.id}>
-                <td>{l.nama_lahan}</td>
-                <td>{l.nama_kecamatan}</td>
-                <td>{l.nama_desa}</td>
-                <td>{l.luas_m2}</td>
-                <td>
-                  <button
-                    style={styles.button}
-                    onClick={() => handleRunAI(l)}
-                    disabled={processingId === l.id}
-                  >
-                    {processingId === l.id ? "Running..." : "Run AI"}
-                  </button>
+            {lahanList.length === 0 ? (
+              <tr>
+                <td colSpan="5" style={styles.emptyCell}>
+                  Belum ada data lahan.
                 </td>
               </tr>
-            ))}
+            ) : (
+              lahanList.map((lahan) => (
+                <tr key={lahan.id}>
+                  <td>{lahan.nama_lahan || "-"}</td>
+                  <td>{lahan.nama_kecamatan || "-"}</td>
+                  <td>{lahan.nama_desa || "-"}</td>
+                  <td>
+                    {lahan.luas_m2 ??
+                      lahan.luas ??
+                      lahan.luas_ha ??
+                      "-"}
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.button,
+                        ...(processingId === lahan.id
+                          ? styles.buttonDisabled
+                          : {}),
+                      }}
+                      onClick={() => handleRunAI(lahan)}
+                      disabled={processingId === lahan.id}
+                    >
+                      {processingId === lahan.id
+                        ? "Running..."
+                        : "Run AI"}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -136,19 +161,26 @@ export default function DatasetAI() {
           </thead>
 
           <tbody>
-            {hasilPrediksi.map((h, i) => (
-              <tr key={i}>
-                <td>{h.nama_lahan || "-"}</td>
-                <td>{formatTon(h.prediksi_ton)}</td>
-                <td>{formatNumber(h.prediksi_kg)}</td>
-                <td>{h.periode || "-"}</td>
+            {hasilPrediksi.length === 0 ? (
+              <tr>
+                <td colSpan="4" style={styles.emptyCell}>
+                  Belum ada hasil prediksi.
+                </td>
               </tr>
-            ))}
+            ) : (
+              hasilPrediksi.map((hasil, index) => (
+                <tr key={hasil.id || `${hasil.sawah_id || "prediksi"}-${index}`}>
+                  <td>{hasil.nama_lahan || "-"}</td>
+                  <td>{formatTon(hasil.prediksi_ton)}</td>
+                  <td>{formatNumber(hasil.prediksi_kg)}</td>
+                  <td>{hasil.periode || "-"}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* ================= STYLE FIX ================= */}
       <style>{`
         table {
           width: 100%;
@@ -156,7 +188,8 @@ export default function DatasetAI() {
           table-layout: fixed;
         }
 
-        th, td {
+        th,
+        td {
           padding: 10px;
           border-bottom: 1px solid #eee;
           text-align: left;
@@ -201,5 +234,16 @@ const styles = {
     border: "none",
     borderRadius: 6,
     cursor: "pointer",
+  },
+
+  buttonDisabled: {
+    opacity: 0.65,
+    cursor: "not-allowed",
+  },
+
+  emptyCell: {
+    textAlign: "center",
+    color: "#64748b",
+    padding: 18,
   },
 };

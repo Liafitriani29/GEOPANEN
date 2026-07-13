@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import api from "../../services/api";
 import {
   Cell,
   CartesianGrid,
@@ -17,9 +18,15 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const NODE_API = "http://localhost:3000/api";
-const BACKEND_HOST = "http://localhost:3000";
-const FASTAPI = "http://127.0.0.1:8000";
+const BACKEND_HOST = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
+
+const FASTAPI = String(
+  import.meta.env.VITE_FASTAPI_URL || ""
+).replace(/\/+$/, "");
 const DEFAULT_CENTER = [-7.6686, 110.8382];
 
 const TOPIK_OPTIONS = [
@@ -346,7 +353,7 @@ export default function CatatanLapangan() {
     try {
       setLoading(true);
 
-      const res = await axios.get(`${NODE_API}/penyuluh/catatan`, {
+      const res = await api.get("/penyuluh/catatan", {
         params: {
           penyuluh_id: penyuluhId,
         },
@@ -408,7 +415,7 @@ export default function CatatanLapangan() {
       let rows = [];
 
       try {
-        const res = await axios.get(`${NODE_API}/penyuluh/petani-binaan`, {
+        const res = await api.get("/penyuluh/petani-binaan", {
           params: {
             penyuluh_id: penyuluhId,
           },
@@ -424,7 +431,7 @@ export default function CatatanLapangan() {
 
       if (rows.length === 0) {
         try {
-          const resMap = await axios.get(`${NODE_API}/map-binaan`, {
+          const resMap = await api.get("/map-binaan", {
             params: {
               penyuluh_id: penyuluhId,
             },
@@ -445,7 +452,7 @@ export default function CatatanLapangan() {
 
   const fetchWeather = async () => {
     try {
-      const res = await axios.get(`${NODE_API}/penyuluh/catatan/cuaca/latest`);
+      const res = await api.get("/penyuluh/catatan/cuaca/latest");
       setWeather(res.data?.data || weather);
     } catch (err) {
       console.log("GET CUACA ERROR:", err.response?.data || err.message);
@@ -833,8 +840,8 @@ export default function CatatanLapangan() {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await axios.post(
-      `${NODE_API}/penyuluh/catatan/upload`,
+    const res = await api.post(
+      "/penyuluh/catatan/upload",
       formData,
       {
         headers: {
@@ -930,14 +937,14 @@ export default function CatatanLapangan() {
       const payload = buildPayload();
 
       if (modalMode === "create") {
-        await axios.post(`${NODE_API}/penyuluh/catatan`, payload);
+        await api.post("/penyuluh/catatan", payload);
         setEndDate(getTodayInput());
         alert("Catatan berhasil ditambahkan.");
       }
 
       if (modalMode === "edit" && selectedItem?.id) {
-        await axios.put(
-          `${NODE_API}/penyuluh/catatan/${selectedItem.id}`,
+        await api.put(
+          `/penyuluh/catatan/${selectedItem.id}`,
           payload
         );
         setEndDate(getTodayInput());
@@ -1003,6 +1010,12 @@ export default function CatatanLapangan() {
         return;
       }
 
+      if (!FASTAPI) {
+        throw new Error(
+          "Layanan FastAPI belum dikonfigurasi. Isi VITE_FASTAPI_URL setelah FastAPI di-deploy."
+        );
+      }
+
       const res = await axios.post(
         `${FASTAPI}/ai/analisis-catatan`,
         payloadCatatan
@@ -1035,7 +1048,7 @@ export default function CatatanLapangan() {
         ringkasan:
           "Analisis catatan belum dapat dijalankan karena FastAPI belum aktif atau endpoint /ai/analisis-catatan belum tersedia.",
         rekomendasi:
-          "Pastikan FastAPI berjalan di http://127.0.0.1:8000 dan endpoint analisis catatan sudah ditambahkan.",
+          "Pastikan VITE_FASTAPI_URL telah diisi dan endpoint /ai/analisis-catatan tersedia.",
         tindakan: [],
         metode: "Tidak tersedia",
       });

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 import PenyuluhTopbar from "../../components/PenyuluhTopbar";
-
-const API = "http://localhost:3000/api";
 
 function safeList(payload) {
   if (Array.isArray(payload)) return payload;
@@ -232,7 +230,7 @@ export default function AIRecommendation() {
       setLoading(true);
       setErrorText("");
 
-      const res = await axios.get(`${API}/rekomendasi-ai`, {
+      const res = await api.get(`/rekomendasi-ai`, {
         params: {
           limit: 200,
         },
@@ -255,7 +253,7 @@ export default function AIRecommendation() {
 
   const fetchReference = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/penyuluh/petani-binaan`);
+      const res = await api.get(`/penyuluh/petani-binaan`);
       const rows = safeList(res.data);
 
       const mapped = rows
@@ -604,7 +602,7 @@ export default function AIRecommendation() {
     try {
       setGenerating(true);
 
-      await axios.post(`${API}/rekomendasi-ai/generate`, {
+      await api.post(`/rekomendasi-ai/generate`, {
         penyuluh_id: penyuluhId || null,
       });
 
@@ -650,22 +648,22 @@ export default function AIRecommendation() {
       };
 
       if (modalMode === "create") {
-        await axios.post(`${API}/rekomendasi-ai`, payload);
+        await api.post(`/rekomendasi-ai`, payload);
         alert("Rekomendasi penyuluh berhasil dibuat.");
       }
 
       if (modalMode === "edit" && selectedItem?.id) {
-        await axios.put(`${API}/rekomendasi-ai/${selectedItem.id}`, payload);
+        await api.put(`/rekomendasi-ai/${selectedItem.id}`, payload);
 
         if (form.status === "Dikirim" && selectedItem.status !== "Dikirim") {
-          await axios.put(`${API}/rekomendasi-ai/${selectedItem.id}/kirim`);
+          await api.put(`/rekomendasi-ai/${selectedItem.id}/kirim`);
         }
 
         if (
           form.status === "Diterapkan" &&
           selectedItem.status !== "Diterapkan"
         ) {
-          await axios.put(`${API}/rekomendasi-ai/${selectedItem.id}/terapkan`);
+          await api.put(`/rekomendasi-ai/${selectedItem.id}/terapkan`);
         }
 
         alert("Rekomendasi berhasil diperbarui.");
@@ -688,7 +686,7 @@ export default function AIRecommendation() {
     }
 
     try {
-      await axios.put(`${API}/rekomendasi-ai/${item.id}/kirim`);
+      await api.put(`/rekomendasi-ai/${item.id}/kirim`);
       setOpenActionId(null);
       await fetchData();
       alert("Rekomendasi berhasil dikirim ke petani.");
@@ -705,7 +703,7 @@ export default function AIRecommendation() {
     }
 
     try {
-      await axios.put(`${API}/rekomendasi-ai/${item.id}/terapkan`);
+      await api.put(`/rekomendasi-ai/${item.id}/terapkan`);
       setOpenActionId(null);
       await fetchData();
       alert("Rekomendasi berhasil ditandai diterapkan.");

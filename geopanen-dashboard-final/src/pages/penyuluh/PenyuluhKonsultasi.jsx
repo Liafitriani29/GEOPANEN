@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
-const API = "http://localhost:3000/api";
-const SERVER = "http://localhost:3000";
+const SERVER = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 const getUser = () => {
   try {
@@ -225,16 +228,16 @@ const markReadOnServer = async (konsultasiId) => {
   if (!konsultasiId) return false;
 
   const routes = [
-    { method: "patch", url: `${API}/konsultasi/${konsultasiId}/read` },
-    { method: "put", url: `${API}/konsultasi/${konsultasiId}/read` },
-    { method: "post", url: `${API}/konsultasi/${konsultasiId}/read` },
-    { method: "patch", url: `${API}/konsultasi/${konsultasiId}/pesan/read` },
-    { method: "patch", url: `${API}/konsultasi/${konsultasiId}/baca` },
+    { method: "patch", url: `/konsultasi/${konsultasiId}/read` },
+    { method: "put", url: `/konsultasi/${konsultasiId}/read` },
+    { method: "post", url: `/konsultasi/${konsultasiId}/read` },
+    { method: "patch", url: `/konsultasi/${konsultasiId}/pesan/read` },
+    { method: "patch", url: `/konsultasi/${konsultasiId}/baca` },
   ];
 
   for (const route of routes) {
     try {
-      await axios[route.method](route.url);
+      await api[route.method](route.url);
       return true;
     } catch {
       // coba route berikutnya
@@ -331,7 +334,7 @@ export default function PenyuluhKonsultasi() {
     try {
       setLoadingList(true);
 
-      const res = await axios.get(`${API}/konsultasi/penyuluh/${penyuluhId}`);
+      const res = await api.get(`/konsultasi/penyuluh/${penyuluhId}`);
       const data = normalizeList(res.data);
 
       setList(data);
@@ -357,7 +360,7 @@ export default function PenyuluhKonsultasi() {
     try {
       setLoadingPesan(true);
 
-      const res = await axios.get(`${API}/konsultasi/${konsultasiId}/pesan`);
+      const res = await api.get(`/konsultasi/${konsultasiId}/pesan`);
       const data = normalizeList(res.data);
 
       setPesanList(data);
@@ -662,8 +665,8 @@ export default function PenyuluhKonsultasi() {
         formData.append("pesan", pesan);
         formData.append("file", selectedFile);
 
-        await axios.post(
-          `${API}/konsultasi/${selected.id}/pesan/upload`,
+        await api.post(
+          `/konsultasi/${selected.id}/pesan/upload`,
           formData,
           {
             headers: {
@@ -672,7 +675,7 @@ export default function PenyuluhKonsultasi() {
           }
         );
       } else {
-        await axios.post(`${API}/konsultasi/${selected.id}/pesan`, {
+        await api.post(`/konsultasi/${selected.id}/pesan`, {
           sender_id: penyuluhId,
           sender_role: "penyuluh",
           pesan,
@@ -700,7 +703,7 @@ export default function PenyuluhKonsultasi() {
     if (!yakin) return;
 
     try {
-      await axios.patch(`${API}/konsultasi/${selected.id}/selesai`);
+      await api.patch(`/konsultasi/${selected.id}/selesai`);
       await loadKonsultasi();
       await loadPesan(selected.id);
     } catch (err) {

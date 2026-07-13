@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -18,8 +18,6 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-const API = "http://localhost:3000/api";
 
 const FULL_MONTHS = [
   { key: "01", label: "Jan" },
@@ -365,11 +363,11 @@ export default function DashboardPenyuluh() {
 
   const fetchWeather = async () => {
     try {
-      const endpoints = [`${API}/weather`, `${API}/cuaca`];
+      const endpoints = ["/weather", "/cuaca"];
 
       for (const endpoint of endpoints) {
         try {
-          const res = await axios.get(endpoint);
+          const res = await api.get(endpoint);
           const normalized = normalizeWeather(res.data);
 
           if (normalized) {
@@ -394,8 +392,8 @@ export default function DashboardPenyuluh() {
       const startDate = "2026-01-01";
       const endDate = todayKey();
 
-      const dashboardRes = await axios
-        .get(`${API}/penyuluh/dashboard`, {
+      const dashboardRes = await api
+        .get(`/penyuluh/dashboard`, {
           params: {
             penyuluh_id: penyuluhId,
           },
@@ -425,8 +423,8 @@ export default function DashboardPenyuluh() {
         rekomendasiRes,
         catatanRes,
       ] = await Promise.allSettled([
-        axios.get(`${API}/penyuluh/petani-binaan`),
-        axios.get(`${API}/penyuluh/analisis-produksi`, {
+        api.get(`/penyuluh/petani-binaan`),
+        api.get(`/penyuluh/analisis-produksi`, {
           params: {
             start_date: startDate,
             end_date: endDate,
@@ -435,9 +433,9 @@ export default function DashboardPenyuluh() {
             status: "all",
           },
         }),
-        axios.get(`${API}/konsultasi/penyuluh/${penyuluhId}`),
-        axios.get(`${API}/rekomendasi-ai`),
-        axios.get(`${API}/penyuluh/catatan`),
+        api.get(`/konsultasi/penyuluh/${penyuluhId}`),
+        api.get(`/rekomendasi-ai`),
+        api.get(`/penyuluh/catatan`),
       ]);
 
       const rawPetani =

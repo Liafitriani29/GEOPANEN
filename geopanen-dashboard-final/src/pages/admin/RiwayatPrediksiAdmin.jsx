@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 import {
   RefreshCcw,
@@ -20,8 +20,6 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
-
-const API = "http://localhost:3000/api";
 
 const getCurrentUser = () => {
   try {
@@ -385,8 +383,8 @@ export default function RiwayatPrediksiAdmin() {
       setLoading(true);
 
       const [riwayatRes, notifRes] = await Promise.allSettled([
-        axios.get(`${API}/prediksi`),
-        axios.get(`${API}/admin/notifikasi/unread-count`),
+        api.get("/prediksi"),
+        api.get("/admin/notifikasi/unread-count"),
       ]);
 
       if (riwayatRes.status === "fulfilled") {

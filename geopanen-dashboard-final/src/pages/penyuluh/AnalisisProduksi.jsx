@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -27,7 +27,6 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API = "http://localhost:3000/api";
 const DEFAULT_CENTER = [-7.68, 110.85];
 
 const MAP_COLORS = ["#16a34a", "#f59e0b", "#2563eb", "#ef4444", "#8b5cf6"];
@@ -452,7 +451,7 @@ export default function AnalisisProduksi() {
 
   const fetchNotifCount = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/notifikasi`, {
+      const res = await api.get(`/notifikasi`, {
         params: {
           user_id: penyuluhId,
           penyuluh_id: penyuluhId,
@@ -490,7 +489,7 @@ export default function AnalisisProduksi() {
 
   const fetchKecamatan = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/kecamatan`);
+      const res = await api.get(`/kecamatan`);
       setKecamatanList(safeList(res.data));
     } catch (err) {
       console.log("ERROR KECAMATAN:", err.response?.data || err.message);
@@ -503,7 +502,7 @@ export default function AnalisisProduksi() {
       setLoading(true);
       setErrorText("");
 
-      const res = await axios.get(`${API}/penyuluh/analisis-produksi`, {
+      const res = await api.get(`/penyuluh/analisis-produksi`, {
         params: {
           start_date: startDate,
           end_date: endDate,
