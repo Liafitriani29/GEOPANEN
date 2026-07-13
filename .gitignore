@@ -1,0 +1,37 @@
+# Node.js
+node_modules/
+**/node_modules/
+
+# Hasil build
+dist/
+build/
+**/dist/
+**/build/
+
+# File konfigurasi rahasia
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Python dan FastAPI
+venv/
+.venv/
+**/venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Database
+*.sql
+
+# Log
+*.log
+
+# File editor dan sistem
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,183 @@
+.pupuk-container {
+  padding: 25px;
+  background: #f5f7fb;
+  min-height: 100vh;
+}
+
+.header-pupuk {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.header-pupuk h1 {
+  margin: 0;
+  font-size: 34px;
+}
+
+.header-pupuk p {
+  color: #666;
+}
+
+.btn-analisis {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+}
+
+.input-card,
+.rekom-card,
+.support-card,
+.note-card,
+.estimasi-card {
+  background: white;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.input-card label {
+  display: block;
+  margin-top: 15px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.input-card select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
+.soil-card {
+  margin-top: 20px;
+  background: #ecfdf5;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.soil-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.soil-item {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.btn-generate {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.main-rekom {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 20px;
+  border: 2px solid #22c55e;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.gambar-pupuk {
+  width: 120px;
+  height: 120px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 50px;
+}
+
+.info-pupuk {
+  flex: 1;
+}
+
+.badge {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+
+.dosis-box {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 180px;
+}
+
+.loading-box {
+  margin-top: 20px;
+  background: #0f172a;
+  color: white;
+  padding: 50px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.support-card {
+  margin-top: 20px;
+}
+
+.support-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.support-item p {
+  margin: 0;
+  color: gray;
+  font-size: 13px;
+}
+
+.bottom-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+.note-card ul {
+  padding-left: 20px;
+}
+
+.note-card li {
+  margin-bottom: 10px;
+}
+
+.estimasi-card {
+  background: #eff6ff;
+  text-align: center;
+}
+
+.estimasi-card h1 {
+  color: #2563eb;
+  font-size: 40px;
+}
