@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
-const API = "http://localhost:3000/api";
+import api from "../services/api";
 
 const initialForm = {
   nama: "",
@@ -132,7 +130,7 @@ export default function Register() {
   komoditas: "Padi",
 };
 
-      const res = await axios.post(`${API}/auth/register`, payload);
+      const res = await api.post("/auth/register", payload);
 
       setMsg(res.data?.message || "Register berhasil. Silakan login.");
       setMsgType("success");
