@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import PetaniNotificationBell from "../../components/PetaniNotificationBell";
 
-const API_NODE =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
-const API_FASTAPI =
-  import.meta.env.VITE_FASTAPI_URL || "http://127.0.0.1:8000";
+const API_FASTAPI = String(
+  import.meta.env.VITE_FASTAPI_URL || ""
+).replace(/\/+$/, "");
 
 const REKOMENDASI_ENDPOINT =
   import.meta.env.VITE_REKOMENDASI_PUPUK_URL ||
-  `${API_FASTAPI.replace(/\/+$/, "")}/rekomendasi/generate`;
+  (API_FASTAPI ? `${API_FASTAPI}/rekomendasi/generate` : "");
 
 const FASE_TANAMAN = [
   {
@@ -1461,7 +1460,7 @@ export default function RekomendasiPupuk() {
         throw new Error("ID pengguna tidak ditemukan. Silakan login ulang.");
       }
 
-      const res = await axios.get(`${API_NODE}/lahan`, {
+      const res = await api.get("/lahan", {
         params: {
           petani_id: userId,
           user_id: userId,
@@ -1520,6 +1519,12 @@ export default function RekomendasiPupuk() {
       mode_analisis: mode,
       gunakan_monitoring: !isSimulation,
     };
+
+    if (!REKOMENDASI_ENDPOINT) {
+      throw new Error(
+        "Layanan FastAPI belum dikonfigurasi. Isi VITE_FASTAPI_URL setelah FastAPI di-deploy."
+      );
+    }
 
     const res = await axios.post(REKOMENDASI_ENDPOINT, body);
 
@@ -1615,7 +1620,7 @@ export default function RekomendasiPupuk() {
 
     const responses = await Promise.allSettled(
       months.map(([month, sampleDate]) =>
-        axios.get(`${API_NODE}/kalender/${selectedLahan.id}/overview`, {
+        api.get(`/kalender/${selectedLahan.id}/overview`, {
           params: {
             tanggal: sampleDate,
             bulan: month,
@@ -1769,7 +1774,7 @@ export default function RekomendasiPupuk() {
 
       await Promise.all(
         newPayloads.map((payload) =>
-          axios.post(`${API_NODE}/kalender`, payload)
+          api.post("/kalender", payload)
         )
       );
 

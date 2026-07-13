@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -17,7 +17,6 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 const BAR_COLORS = ["#16a34a", "#2563eb", "#f59e0b"];
 
 function PdfFileIcon({ size = 18 }) {
@@ -1585,7 +1584,7 @@ export default function PrediksiPanen() {
         return [];
       }
 
-      const res = await axios.get(`${API}/lahan`, {
+      const res = await api.get("/lahan", {
         params: {
           petani_id: userId,
           user_id: userId,
@@ -1637,7 +1636,7 @@ export default function PrediksiPanen() {
         (lahanRowsArg || []).map((item) => String(item.id))
       );
 
-      const res = await axios.get(`${API}/prediksi`, {
+      const res = await api.get("/prediksi", {
         params: {
           petani_id: userId,
           user_id: userId,
@@ -1691,7 +1690,7 @@ export default function PrediksiPanen() {
     }
 
     try {
-      const res = await axios.get(`${API}/notifikasi/count`, {
+      const res = await api.get("/notifikasi/count", {
         params: {
           user_id: userId,
           role: "petani",
@@ -1709,7 +1708,7 @@ export default function PrediksiPanen() {
       setNotifCount(toNumber(count));
     } catch {
       try {
-        const res = await axios.get(`${API}/notifikasi`, {
+        const res = await api.get("/notifikasi", {
           params: {
             user_id: userId,
             role: "petani",
@@ -1743,7 +1742,7 @@ export default function PrediksiPanen() {
       setLoadingRegional(true);
       setRegionalError("");
 
-      const res = await axios.get(`${API}/prediksi/analisis-wilayah`, {
+      const res = await api.get("/prediksi/analisis-wilayah", {
         params: {
           sawah_id: Number(lahanId),
           lahan_id: Number(lahanId),
@@ -1800,7 +1799,7 @@ export default function PrediksiPanen() {
       setError("");
       setRegionalDetailOpen(false);
 
-      const res = await axios.post(`${API}/prediksi`, {
+      const res = await api.post("/prediksi", {
         sawah_id: Number(selectedLahan.id),
         lahan_id: Number(selectedLahan.id),
         petani_id: Number(userId),
@@ -1856,7 +1855,7 @@ export default function PrediksiPanen() {
 
   async function handleDetail(item) {
     try {
-      const res = await axios.get(`${API}/prediksi/${item.id}`);
+      const res = await api.get(`/prediksi/${item.id}`);
       const normalized = normalizePredictionItem(res.data?.data || item, 0);
       setDetailData(normalized);
       setDetailOpen(true);

@@ -9,7 +9,7 @@ import {
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -18,8 +18,11 @@ import PetaniNotificationBell from "../../components/PetaniNotificationBell";
 // =====================
 // API CONFIG
 // =====================
-const RAW_API_NODE = import.meta.env.VITE_API_URL || "http://localhost:3000";
-const API_NODE = RAW_API_NODE.replace(/\/api\/?$/, "").replace(/\/$/, "");
+const API_NODE = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 // =====================
 // IMAGE CONFIG
@@ -748,7 +751,7 @@ const fetchPupukForLahan = async (lahanItem, userId) => {
   }
 
   try {
-    const res = await axios.get(`${API_NODE}/api/kalender/${lahanItem.id}`, {
+    const res = await api.get(`/kalender/${lahanItem.id}`, {
       params: {
         user_id: userId,
         petani_id: userId,
@@ -1040,13 +1043,13 @@ export default function PetaLahan() {
       setLoading(true);
 
       const [lahanResult, prediksiResult] = await Promise.allSettled([
-        axios.get(`${API_NODE}/api/lahan`, {
+        api.get("/lahan", {
           params: {
             petani_id: userId,
             user_id: userId,
           },
         }),
-        axios.get(`${API_NODE}/api/prediksi`),
+        api.get("/prediksi"),
       ]);
 
       if (lahanResult.status !== "fulfilled") {
@@ -1088,7 +1091,7 @@ export default function PetaLahan() {
     if (!item?.id) return;
 
     try {
-      const res = await axios.get(`${API_NODE}/api/prediksi`);
+      const res = await api.get("/prediksi");
       const dataPrediksi = normalizeApiList(res.data);
 
       const prediksi = findPrediksiForLahan(dataPrediksi, item);

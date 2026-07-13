@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+import api from "../../services/api";
 
 const MONTHS = [
   "Januari",
@@ -910,7 +908,7 @@ export default function KalenderBudidaya() {
         throw new Error("ID pengguna tidak ditemukan. Silakan login ulang.");
       }
 
-      const response = await axios.get(`${API}/lahan`, {
+      const response = await api.get("/lahan", {
         params: {
           user_id: userId,
           petani_id: userId,
@@ -943,8 +941,8 @@ export default function KalenderBudidaya() {
       setLoadingOverview(true);
       setError("");
 
-      const response = await axios.get(
-        `${API}/kalender/${selectedLahanId}/overview`,
+      const response = await api.get(
+        `/kalender/${selectedLahanId}/overview`,
         {
           params: {
             tanggal: selectedDate,
@@ -1016,7 +1014,7 @@ export default function KalenderBudidaya() {
       setGenerating(true);
       setError("");
 
-      await axios.post(`${API}/kalender/${selectedLahanId}/generate`, {
+      await api.post(`/kalender/${selectedLahanId}/generate`, {
         user_id: Number(userId),
       });
 
@@ -1037,8 +1035,8 @@ export default function KalenderBudidaya() {
       setWeatherError("");
       setWeather(EMPTY_WEATHER);
 
-      const response = await axios.get(
-        `${API}/kalender/${selectedLahanId}/cuaca`,
+      const response = await api.get(
+        `/kalender/${selectedLahanId}/cuaca`,
         {
           params: {
             user_id: Number(userId),
@@ -1133,8 +1131,8 @@ export default function KalenderBudidaya() {
         curah_hujan: weather.curah_hujan ?? null,
       };
 
-      const response = await axios.post(
-        `${API}/kalender/${selectedLahanId}/monitoring-harian`,
+      const response = await api.post(
+        `/kalender/${selectedLahanId}/monitoring-harian`,
         payload,
       );
 
@@ -1476,7 +1474,7 @@ export default function KalenderBudidaya() {
       setSaving(true);
       setError("");
 
-      await axios.patch(`${API}/kalender/${item.id}/status`, {
+      await api.patch(`/kalender/${item.id}/status`, {
         user_id: Number(userId),
         status,
       });
@@ -1513,7 +1511,7 @@ export default function KalenderBudidaya() {
       setSaving(true);
       setError("");
 
-      await axios.patch(`${API}/kalender/${eventModal.id}/reschedule`, {
+      await api.patch(`/kalender/${eventModal.id}/reschedule`, {
         ...rescheduleForm,
         user_id: Number(userId),
       });

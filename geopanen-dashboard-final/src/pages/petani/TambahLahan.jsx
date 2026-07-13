@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
-
-const API = "http://localhost:3000/api";
 
 const VARIETAS_PADI = [
   "Ciherang",
@@ -131,7 +129,7 @@ export default function TambahLahan() {
     try {
       setLoadingKecamatan(true);
 
-      const res = await axios.get(`${API}/kecamatan`);
+      const res = await api.get("/kecamatan");
       const data = normalizeApiList(res.data);
 
       setKecamatanList(data);
@@ -148,7 +146,7 @@ export default function TambahLahan() {
     try {
       setLoadingDesa(true);
 
-      const res = await axios.get(`${API}/desa`, {
+      const res = await api.get("/desa", {
         params: {
           kecamatan_id: kecamatanId,
         },
@@ -378,7 +376,11 @@ export default function TambahLahan() {
 
       formData.append("foto", form.foto);
 
-      await axios.post(`${API}/lahan`, formData);
+      await api.post("/lahan", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       alert("Lahan berhasil ditambahkan.");
       resetForm();

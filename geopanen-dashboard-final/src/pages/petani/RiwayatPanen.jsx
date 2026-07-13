@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../services/api";
 import {
   BarChart,
   Bar,
@@ -12,8 +12,6 @@ import {
   Cell,
   CartesianGrid,
 } from "recharts";
-
-const NODE_API = "http://localhost:3000/api";
 
 const STATUS_COLOR = {
   AMAN: "#16a34a",
@@ -264,7 +262,7 @@ export default function RiwayatPanen() {
         return;
       }
 
-      const nodeRes = await axios.get(`${NODE_API}/prediksi`, {
+      const nodeRes = await api.get("/prediksi", {
         params: {
           petani_id: userId,
           user_id: userId,

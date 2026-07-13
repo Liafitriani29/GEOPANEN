@@ -9,7 +9,7 @@ import {
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 import L from "leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -18,8 +18,11 @@ import PetaniNotificationBell from "../../components/PetaniNotificationBell";
 // =====================
 // API CONFIG
 // =====================
-const RAW_API_NODE = import.meta.env.VITE_API_URL || "http://localhost:3000";
-const API_NODE = RAW_API_NODE.replace(/\/api\/?$/, "").replace(/\/$/, "");
+const API_NODE = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 // =====================
 // IMAGE CONFIG
@@ -777,13 +780,13 @@ export default function LahanSaya() {
       setLoading(true);
 
       const [lahanResult, prediksiResult] = await Promise.allSettled([
-        axios.get(`${API_NODE}/api/lahan`, {
+        api.get("/lahan", {
           params: {
             petani_id: userId,
             user_id: userId,
           },
         }),
-        axios.get(`${API_NODE}/api/prediksi`),
+        api.get("/prediksi"),
       ]);
 
       if (lahanResult.status !== "fulfilled") {
@@ -823,7 +826,7 @@ export default function LahanSaya() {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`${API_NODE}/api/lahan/${id}`);
+      await api.delete(`/lahan/${id}`);
 
       setLahan((prev) => {
         const remaining = prepareMapLahan(

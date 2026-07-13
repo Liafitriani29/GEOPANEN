@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 import PetaniNotificationBell from "../../components/PetaniNotificationBell";
 
-const API = "http://localhost:3000/api";
-const BASE_NODE_URL = API.replace(/\/api\/?$/, "");
+const BASE_NODE_URL = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 // =====================================================
 // PLACEHOLDER AMAN
@@ -774,14 +777,14 @@ export default function MonitoringTanaman() {
       setLoading(true);
 
       const results = await Promise.allSettled([
-        axios.get(`${API}/lahan`, {
+        api.get("/lahan", {
           params: {
             petani_id: userId,
             user_id: userId,
           },
         }),
 
-        axios.get(`${API}/lahan`),
+        api.get("/lahan"),
       ]);
 
       const rawRows = results.flatMap((result) => {
@@ -837,13 +840,13 @@ export default function MonitoringTanaman() {
 
       const [pertumbuhanRes, aktivitasRes, lingkunganRes] =
         await Promise.allSettled([
-          axios.get(`${API}/monitoring/pertumbuhan`, {
+          api.get("/monitoring/pertumbuhan", {
             params: { lahan_id: lahanId },
           }),
-          axios.get(`${API}/monitoring/aktivitas`, {
+          api.get("/monitoring/aktivitas", {
             params: { lahan_id: lahanId },
           }),
-          axios.get(`${API}/monitoring/lingkungan`, {
+          api.get("/monitoring/lingkungan", {
             params: { lahan_id: lahanId },
           }),
         ]);
@@ -896,7 +899,7 @@ export default function MonitoringTanaman() {
     try {
       setAiLoading(true);
 
-      const res = await axios.post(`${API}/monitoring/analisis`, {
+      const res = await api.post("/monitoring/analisis", {
         lahan_id: lahanId,
       });
 

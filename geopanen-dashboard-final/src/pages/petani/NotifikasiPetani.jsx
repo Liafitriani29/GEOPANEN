@@ -4,11 +4,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import axios from "axios";
-
-const API =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:3000/api";
+import api from "../../services/api";
 
 // =====================================================
 // HELPER USER
@@ -238,8 +234,8 @@ export default function NotifikasiPetani() {
           PUT /api/notifikasi/:id/read
         */
         try {
-          await axios.put(
-            `${API}/notifikasi/${notificationId}/read`,
+          await api.put(
+            `/notifikasi/${notificationId}/read`,
             {
               user_id: userId,
               petani_id: userId,
@@ -261,8 +257,8 @@ export default function NotifikasiPetani() {
             statusCode === 405
           ) {
             try {
-              await axios.patch(
-                `${API}/notifikasi/${notificationId}/read`,
+              await api.patch(
+                `/notifikasi/${notificationId}/read`,
                 {
                   user_id: userId,
                   petani_id: userId,
@@ -421,8 +417,8 @@ export default function NotifikasiPetani() {
         setLoading(true);
         setError("");
 
-        const response = await axios.get(
-          `${API}/notifikasi`,
+        const response = await api.get(
+          "/notifikasi",
           {
             params: {
               user_id: userId,

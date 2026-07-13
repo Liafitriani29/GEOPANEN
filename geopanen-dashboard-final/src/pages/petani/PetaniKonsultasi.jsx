@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import axios from "axios";
+import api from "../../services/api";
 
-const API = "http://localhost:3000/api";
-const SERVER = "http://localhost:3000";
+const SERVER = String(
+  import.meta.env.VITE_BACKEND_URL || api.defaults.baseURL || ""
+)
+  .replace(/\/api\/?$/, "")
+  .replace(/\/$/, "");
 
 const DEFAULT_PENYULUH_ID = 6;
 
@@ -155,7 +158,7 @@ export default function PetaniKonsultasi() {
     if (!petaniId) return;
 
     try {
-      const res = await axios.get(`${API}/konsultasi/petani/${petaniId}`);
+      const res = await api.get(`/konsultasi/petani/${petaniId}`);
       const data = normalizeList(res.data);
 
       setList(data);
@@ -203,7 +206,7 @@ export default function PetaniKonsultasi() {
     if (!konsultasiId) return;
 
     try {
-      const res = await axios.get(`${API}/konsultasi/${konsultasiId}/pesan`);
+      const res = await api.get(`/konsultasi/${konsultasiId}/pesan`);
       setPesanList(normalizeList(res.data));
     } catch (err) {
       console.log("ERROR LOAD PESAN:", err.response?.data || err.message);
@@ -275,7 +278,7 @@ export default function PetaniKonsultasi() {
       const draftLahanId = localStorage.getItem("draft_konsultasi_lahan_id");
       const finalLahanId = draftLahanId || lahanId || selected?.lahan_id || null;
 
-      const res = await axios.post(`${API}/konsultasi`, {
+      const res = await api.post("/konsultasi", {
         petani_id: petaniId,
         penyuluh_id: penyuluhId,
         lahan_id: finalLahanId,
@@ -324,8 +327,8 @@ export default function PetaniKonsultasi() {
         formData.append("pesan", pesan);
         formData.append("file", selectedFile);
 
-        await axios.post(
-          `${API}/konsultasi/${selected.id}/pesan/upload`,
+        await api.post(
+          `/konsultasi/${selected.id}/pesan/upload`,
           formData,
           {
             headers: {
@@ -334,7 +337,7 @@ export default function PetaniKonsultasi() {
           }
         );
       } else {
-        await axios.post(`${API}/konsultasi/${selected.id}/pesan`, {
+        await api.post(`/konsultasi/${selected.id}/pesan`, {
           sender_id: petaniId,
           sender_role: "petani",
           pesan,
