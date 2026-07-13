@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import PetaniNotificationBell from "../../components/PetaniNotificationBell";
-
-const API = "http://localhost:3000/api";
+import api from "../../services/api";
 const DEFAULT_CENTER = [-7.681, 110.832];
 
 const getStoredUser = () => {
@@ -269,11 +267,7 @@ export default function DashboardPetani() {
 
   const loadUser = async (id) => {
     try {
-      const res = await axios.get(`${API}/petani/${id}`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-      });
+      const res = await api.get(`/petani/${id}`);
 
       const data = res.data?.data || res.data?.user || res.data || null;
 
@@ -303,13 +297,10 @@ export default function DashboardPetani() {
 
   const loadLahan = async (id) => {
     try {
-      const res = await axios.get(`${API}/lahan`, {
+      const res = await api.get("/lahan", {
         params: {
           petani_id: id,
           user_id: id,
-        },
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
         },
       });
 
@@ -325,7 +316,7 @@ export default function DashboardPetani() {
 
   const loadPrediksi = async (id) => {
     try {
-      const res = await axios.get(`${API}/prediksi`, {
+      const res = await api.get("/prediksi", {
         params: {
           petani_id: id,
           user_id: id,
@@ -341,7 +332,7 @@ export default function DashboardPetani() {
 
   const loadKalender = async (id, lahanData = []) => {
     try {
-      const res = await axios.get(`${API}/kalender/petani`, {
+      const res = await api.get("/kalender/petani", {
         params: {
           petani_id: id,
           user_id: id,
@@ -356,7 +347,7 @@ export default function DashboardPetani() {
       }
 
       const requests = await Promise.allSettled(
-        lahanData.map((item) => axios.get(`${API}/kalender/${item.id}`))
+        lahanData.map((item) => api.get(`/kalender/${item.id}`))
       );
 
       const merged = requests.flatMap((item) => {
@@ -369,7 +360,7 @@ export default function DashboardPetani() {
       console.log("ERROR KALENDER:", err.response?.data || err.message);
 
       const requests = await Promise.allSettled(
-        lahanData.map((item) => axios.get(`${API}/kalender/${item.id}`))
+        lahanData.map((item) => api.get(`/kalender/${item.id}`))
       );
 
       const merged = requests.flatMap((item) => {
@@ -383,7 +374,7 @@ export default function DashboardPetani() {
 
   const loadNotifikasi = async (id) => {
     try {
-      const res = await axios.get(`${API}/notifikasi`, {
+      const res = await api.get("/notifikasi", {
         params: {
           user_id: id,
           role: "petani",
@@ -398,7 +389,7 @@ export default function DashboardPetani() {
       if (unreadItems.length > 0) {
         await Promise.all(
           unreadItems.map((item) =>
-            axios.put(`${API}/notifikasi/${item.id}/read`)
+            api.put(`/notifikasi/${item.id}/read`)
           )
         );
 
@@ -424,7 +415,7 @@ export default function DashboardPetani() {
 
   const loadKonsultasi = async (id) => {
     try {
-      const res = await axios.get(`${API}/konsultasi/petani/${id}`);
+      const res = await api.get(`/konsultasi/petani/${id}`);
       setKonsultasiList(normalizeApiList(res.data));
     } catch (err) {
       console.log("ERROR KONSULTASI:", err.response?.data || err.message);
@@ -434,11 +425,11 @@ export default function DashboardPetani() {
 
   const loadWeather = async () => {
     try {
-      const endpoints = [`${API}/cuaca`, `${API}/weather`];
+      const endpoints = ["/cuaca", "/weather"];
 
       for (const endpoint of endpoints) {
         try {
-          const res = await axios.get(endpoint);
+          const res = await api.get(endpoint);
           const data = res.data?.data || res.data || {};
 
           const suhu =
