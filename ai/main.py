@@ -21,18 +21,14 @@ app = FastAPI(title="GeoPanen AI System", version="3.8")
 # =====================================================
 # CORS
 # =====================================================
+# =====================================================
+# CORS CONFIG RAILWAY
+# =====================================================
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin for origin in [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            os.getenv("FRONTEND_URL"),
-        ] if origin
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
