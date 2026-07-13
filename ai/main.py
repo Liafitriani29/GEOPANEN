@@ -8,6 +8,7 @@ import joblib
 import requests
 import mysql.connector
 import json
+import os
 from datetime import datetime, timedelta
 
 
@@ -23,10 +24,13 @@ app = FastAPI(title="GeoPanen AI System", version="3.8")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        origin for origin in [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            os.getenv("FRONTEND_URL"),
+        ] if origin
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -37,8 +41,11 @@ app.add_middleware(
 # =====================================================
 # LOAD MODEL
 # =====================================================
-model = joblib.load("model_geopanen.pkl")
-fitur = joblib.load("fitur_geopanen.pkl")
+MODEL_PATH = os.getenv("MODEL_PATH", "model_geopanen.pkl")
+FITUR_PATH = os.getenv("FITUR_PATH", "fitur_geopanen.pkl")
+
+model = joblib.load(MODEL_PATH)
+fitur = joblib.load(FITUR_PATH)
 
 
 # =====================================================
@@ -46,10 +53,12 @@ fitur = joblib.load("fitur_geopanen.pkl")
 # =====================================================
 def get_db():
     return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="geopanen_bismillah_fikss",
+        host=os.getenv("MYSQLHOST", os.getenv("DB_HOST", "localhost")),
+        user=os.getenv("MYSQLUSER", os.getenv("DB_USER", "root")),
+        password=os.getenv("MYSQLPASSWORD", os.getenv("DB_PASSWORD", "")),
+        database=os.getenv("MYSQLDATABASE", os.getenv("DB_NAME", "geopanen_bismillah_fikss")),
+        port=int(os.getenv("MYSQLPORT", os.getenv("DB_PORT", 3306))),
+        autocommit=True,
     )
 
 
