@@ -422,7 +422,7 @@ app.use((err, req, res, next) => {
 |--------------------------------------------------------------------------
 */
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("============================================");
   console.log(`GeoPanen Backend berjalan di port ${PORT}`);
   console.log(`Server: http://localhost:${PORT}`);
