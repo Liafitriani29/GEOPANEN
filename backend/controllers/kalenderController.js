@@ -302,27 +302,322 @@ const unavailableWeatherPayload = (message = "Data cuaca belum tersedia") => ({
 // =====================================================
 // NOTIFIKASI
 // =====================================================
-const insertNotification = ({
+const formatTanggalIndonesia = (value) => {
+  const date = parseDateOnly(value);
+  if (!date) return "tanggal yang dipilih";
+
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const buildCalendarLink = ({
+  calendarId = null,
+  lahanId = null,
+  date = null,
+  monitoringId = null,
+}) => {
+  const params = new URLSearchParams();
+
+  if (calendarId) params.set("event_id", String(calendarId));
+  if (lahanId) params.set("lahan_id", String(lahanId));
+  if (date) params.set("tanggal", toDateKey(date) || String(date).slice(0, 10));
+  if (monitoringId) params.set("monitoring_id", String(monitoringId));
+
+  const queryString = params.toString();
+  return queryString
+    ? `/petani/kalender?${queryString}`
+    : "/petani/kalender";
+};
+
+const normalizePriority = (value, fallback = "rendah") => {
+  const priority = normalizeText(value);
+  return ["tinggi", "sedang", "rendah"].includes(priority)
+    ? priority
+    : fallback;
+};
+
+const getNotificationTitle = (title, priority) => {
+  const cleanTitle = String(title || "Kondisi Tanaman").trim();
+
+  if (priority === "tinggi") {
+    return `Peringatan: ${cleanTitle}`;
+  }
+
+  if (priority === "sedang") {
+    return `Perlu Dipantau: ${cleanTitle}`;
+  }
+
+  return cleanTitle;
+};
+
+const insertNotification = async ({
   userId,
+  calendarId = null,
+  monitoringId = null,
+  lahanId = null,
   title,
   message,
-  link = "/petani/kalender",
+  type = "informasi",
+  priority = "rendah",
+  targetUrl = "/petani/kalender",
+  role = "petani",
+  refreshExisting = false,
 }) => {
-  if (!userId || !title) return;
+  if (!userId || !title) return null;
 
-  db.query(
+  const normalizedType = normalizeText(type) || "informasi";
+  const normalizedPriority = normalizePriority(priority);
+  const finalTargetUrl = targetUrl || "/petani/kalender";
+
+  const existingRows = await query(
+    `
+      SELECT id
+      FROM notifikasi
+      WHERE user_id = ?
+        AND role = ?
+        AND judul = ?
+        AND COALESCE(target_url, link, '') = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `,
+    [userId, role, title, finalTargetUrl]
+  );
+
+  const existing = existingRows[0] || null;
+
+  if (existing) {
+    if (refreshExisting) {
+      await query(
+        `
+          UPDATE notifikasi
+          SET
+            kalender_id = ?,
+            monitoring_id = ?,
+            lahan_id = ?,
+            pesan = ?,
+            jenis = ?,
+            tingkat = ?,
+            link = ?,
+            target_url = ?,
+            is_read = 0,
+            read_at = NULL,
+            created_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `,
+        [
+          calendarId,
+          monitoringId,
+          lahanId,
+          message || "",
+          normalizedType,
+          normalizedPriority,
+          finalTargetUrl,
+          finalTargetUrl,
+          existing.id,
+        ]
+      );
+    }
+
+    return {
+      id: Number(existing.id),
+      created: false,
+      refreshed: Boolean(refreshExisting),
+    };
+  }
+
+  const result = await query(
     `
       INSERT INTO notifikasi
-      (user_id, role, judul, pesan, link, is_read)
-      VALUES (?, 'petani', ?, ?, ?, 0)
+      (
+        user_id,
+        kalender_id,
+        monitoring_id,
+        lahan_id,
+        role,
+        judul,
+        pesan,
+        jenis,
+        tingkat,
+        link,
+        target_url,
+        is_read,
+        read_at,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, CURRENT_TIMESTAMP)
     `,
-    [userId, title, message || "", link],
-    (error) => {
-      if (error) {
-        console.error("ERROR INSERT NOTIFIKASI:", error.message);
-      }
-    }
+    [
+      userId,
+      calendarId,
+      monitoringId,
+      lahanId,
+      role,
+      title,
+      message || "",
+      normalizedType,
+      normalizedPriority,
+      finalTargetUrl,
+      finalTargetUrl,
+    ]
   );
+
+  return {
+    id: Number(result.insertId),
+    created: true,
+    refreshed: false,
+  };
+};
+
+const deleteNotificationsByMonitoringId = async ({ userId, monitoringId }) => {
+  if (!userId || !monitoringId) return 0;
+
+  const result = await query(
+    `
+      DELETE FROM notifikasi
+      WHERE user_id = ?
+        AND role = 'petani'
+        AND monitoring_id = ?
+    `,
+    [userId, monitoringId]
+  );
+
+  return Number(result.affectedRows || 0);
+};
+
+const deleteNotificationsByCalendarIds = async ({ userId, calendarIds }) => {
+  const ids = (Array.isArray(calendarIds) ? calendarIds : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  if (!userId || ids.length === 0) return 0;
+
+  const placeholders = ids.map(() => "?").join(",");
+  const result = await query(
+    `
+      DELETE FROM notifikasi
+      WHERE user_id = ?
+        AND role = 'petani'
+        AND kalender_id IN (${placeholders})
+    `,
+    [userId, ...ids]
+  );
+
+  return Number(result.affectedRows || 0);
+};
+
+const createInsightNotification = async ({
+  userId,
+  lahan,
+  insight,
+  date,
+  monitoringId = null,
+  calendarId = null,
+  refreshExisting = false,
+}) => {
+  if (!userId || !lahan || !insight) return null;
+
+  const priority = normalizePriority(insight.prioritas, "rendah");
+  const type = ["tinggi", "sedang"].includes(priority)
+    ? "peringatan"
+    : "informasi";
+  const title = getNotificationTitle(insight.judul, priority);
+  const message = [
+    insight.ringkasan,
+    insight.rekomendasi
+      ? `Tindak lanjut: ${insight.rekomendasi}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const targetUrl = buildCalendarLink({
+    calendarId,
+    lahanId: lahan.id,
+    date,
+    monitoringId,
+  });
+
+  return insertNotification({
+    userId,
+    calendarId,
+    monitoringId,
+    lahanId: lahan.id,
+    title,
+    message,
+    type,
+    priority,
+    targetUrl,
+    refreshExisting,
+  });
+};
+
+const createAdaptiveActivityNotifications = async ({
+  userId,
+  lahan,
+  monitoring,
+  insight,
+  activities,
+  refreshExisting = false,
+}) => {
+  if (!userId || !lahan || !monitoring) return [];
+
+  const uniqueActivities = Array.from(
+    new Map(
+      (Array.isArray(activities) ? activities : [])
+        .filter((item) => item?.id)
+        .map((item) => [String(item.id), item])
+    ).values()
+  );
+
+  const notifications = [];
+
+  for (const activity of uniqueActivities) {
+    const priority = normalizePriority(activity.prioritas, "sedang");
+    const type = ["tinggi", "sedang"].includes(priority)
+      ? "peringatan"
+      : "jadwal";
+    const title = getNotificationTitle(activity.nama_kegiatan, priority);
+    const dateLabel = formatTanggalIndonesia(activity.tanggal);
+    const timeLabel = String(activity.waktu || "08:00").slice(0, 5);
+    const condition =
+      insight?.ringkasan ||
+      activity.catatan ||
+      "Hasil monitoring menunjukkan kondisi yang perlu ditindaklanjuti.";
+    const action =
+      activity.metode || "Laksanakan kegiatan sesuai kondisi lahan.";
+    const message = `${condition} Jadwal tindak lanjut pada ${dateLabel} pukul ${timeLabel}. ${action}`;
+    const targetUrl = buildCalendarLink({
+      calendarId: activity.id,
+      lahanId: lahan.id,
+      date: activity.tanggal,
+      monitoringId: monitoring.id,
+    });
+
+    const notification = await insertNotification({
+      userId,
+      calendarId: activity.id,
+      monitoringId: monitoring.id,
+      lahanId: lahan.id,
+      title,
+      message,
+      type,
+      priority,
+      targetUrl,
+      refreshExisting,
+    });
+
+    if (notification) {
+      notifications.push({
+        ...notification,
+        kalender_id: Number(activity.id),
+        monitoring_id: Number(monitoring.id),
+      });
+    }
+  }
+
+  return notifications;
 };
 
 // =====================================================
@@ -1065,6 +1360,9 @@ const prepareSchedule = (lahan, monitoring) => {
           : null,
         sumber: item.adaptive_key ? "adaptif" : "sistem",
         prioritas: item.prioritas || "sedang",
+        monitoring_id: item.adaptive_key
+          ? Number(monitoring?.id || 0) || null
+          : null,
       };
     });
 };
@@ -1101,17 +1399,18 @@ const deleteGeneratedRowsByIds = async (ids) => {
   return Number(result.affectedRows || 0);
 };
 
-const saveSystemSchedule = async ({ lahan, userId }) => {
+const saveSystemSchedule = async ({ lahan, userId, monitoring = null }) => {
   if (!lahan) throw new Error("Lahan tidak ditemukan");
   if (!lahan.tanggal_tanam) throw new Error("Tanggal tanam belum diisi");
 
   const ownerId = userId || getOwnerId(lahan);
-  const latestMonitoring = await getLatestMonitoring(lahan.id);
-  const schedule = prepareSchedule(lahan, latestMonitoring);
+  const activeMonitoring = monitoring || (await getLatestMonitoring(lahan.id));
+  const schedule = prepareSchedule(lahan, activeMonitoring);
   const existingRows = await query(
     `
       SELECT
         id,
+        monitoring_id,
         nama_kegiatan,
         hari_ke,
         sumber,
@@ -1143,7 +1442,6 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
   for (const item of schedule) {
     const key = getScheduleKey(item);
     const group = existingGroups.get(key) || [];
-
     const current =
       group.find((row) => isProtectedGeneratedRow(row)) ||
       group.sort((left, right) => Number(right.id) - Number(left.id))[0] ||
@@ -1162,6 +1460,7 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
           UPDATE kalender_budidaya
           SET
             user_id = COALESCE(user_id, ?),
+            monitoring_id = ?,
             tanggal_rekomendasi = ?,
             tanggal = ?,
             jenis = ?,
@@ -1182,6 +1481,7 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
         `,
         [
           ownerId || null,
+          item.monitoring_id,
           item.tanggal,
           item.tanggal,
           item.jenis,
@@ -1208,6 +1508,7 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
         (
           lahan_id,
           user_id,
+          monitoring_id,
           nama_kegiatan,
           jenis,
           tanggal,
@@ -1227,11 +1528,12 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
           prioritas,
           diubah_pengguna
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'terjadwal', ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'terjadwal', ?, ?, 0)
       `,
       [
         lahan.id,
         ownerId || null,
+        item.monitoring_id,
         item.nama_kegiatan,
         item.jenis,
         item.tanggal,
@@ -1267,14 +1569,53 @@ const saveSystemSchedule = async ({ lahan, userId }) => {
     })
     .map((row) => Number(row.id));
 
+  const removedNotifications = await deleteNotificationsByCalendarIds({
+    userId: ownerId,
+    calendarIds: removableIds,
+  });
   const removed = await deleteGeneratedRowsByIds(removableIds);
+
+  let adaptiveActivities = [];
+
+  if (activeMonitoring?.id) {
+    adaptiveActivities = await query(
+      `
+        SELECT
+          kb.*,
+          DATE_FORMAT(kb.tanggal, '%Y-%m-%d') AS tanggal
+        FROM kalender_budidaya kb
+        WHERE kb.lahan_id = ?
+          AND kb.monitoring_id = ?
+          AND kb.sumber = 'adaptif'
+          AND kb.status IN ('terjadwal', 'terlambat')
+        ORDER BY
+          CASE kb.prioritas
+            WHEN 'tinggi' THEN 1
+            WHEN 'sedang' THEN 2
+            ELSE 3
+          END,
+          kb.tanggal ASC,
+          kb.waktu ASC,
+          kb.id ASC
+      `,
+      [lahan.id, activeMonitoring.id]
+    );
+
+    adaptiveActivities = serializeCalendarRows(adaptiveActivities);
+  }
 
   return {
     inserted,
     updated,
     skipped,
     removed,
+    removed_ids: removableIds,
+    removed_notifications: removedNotifications,
     total: schedule.length,
+    monitoring_id: activeMonitoring?.id
+      ? Number(activeMonitoring.id)
+      : null,
+    adaptive_activities: adaptiveActivities,
   };
 };
 
@@ -1550,19 +1891,62 @@ exports.generateKalenderByLahan = async (req, res) => {
       return sendError(res, 404, "Lahan tidak ditemukan atau bukan milik pengguna");
     }
 
-    const result = await saveSystemSchedule({ lahan, userId });
     const notificationUserId = userId || getOwnerId(lahan);
-
-    insertNotification({
+    const latestMonitoring = await getLatestMonitoring(lahanId);
+    const result = await saveSystemSchedule({
+      lahan,
       userId: notificationUserId,
-      title: "Kalender Budidaya Diperbarui",
-      message: `${result.inserted} kegiatan baru ditambahkan, ${result.updated} kegiatan diperbarui, ${result.skipped} kegiatan dipertahankan, dan ${result.removed} jadwal lama dibersihkan.`,
+      monitoring: latestMonitoring,
     });
+
+    const today = toDateKey(new Date());
+    const todayMonitoring = await getMonitoringByDate(lahanId, today);
+    const todayInsight = buildDailyInsight(lahan, todayMonitoring, today);
+    const phaseInsight = buildPhaseInsight(lahan, today);
+    let notifications = [];
+
+    const adaptiveForToday = result.adaptive_activities.filter(
+      (item) =>
+        todayMonitoring?.id &&
+        sameId(item.monitoring_id, todayMonitoring.id)
+    );
+
+    if (
+      todayMonitoring &&
+      normalizeText(todayInsight.status) === "perlu_perhatian" &&
+      adaptiveForToday.length > 0
+    ) {
+      notifications = await createAdaptiveActivityNotifications({
+        userId: notificationUserId,
+        lahan,
+        monitoring: todayMonitoring,
+        insight: todayInsight,
+        activities: adaptiveForToday,
+        refreshExisting: false,
+      });
+    } else {
+      const notification = await createInsightNotification({
+        userId: notificationUserId,
+        lahan,
+        insight:
+          normalizeText(todayInsight.status) === "perlu_perhatian"
+            ? todayInsight
+            : phaseInsight,
+        date: today,
+        monitoringId: todayMonitoring?.id || null,
+        refreshExisting: false,
+      });
+
+      if (notification) notifications = [notification];
+    }
 
     return res.json({
       status: true,
       message: "Kalender berhasil diperbarui tanpa menghapus riwayat kegiatan.",
-      data: result,
+      data: {
+        ...result,
+        notification_count: notifications.length,
+      },
     });
   } catch (error) {
     console.error("ERROR GENERATE KALENDER:", error);
@@ -1717,17 +2101,54 @@ exports.createMonitoringKalender = async (req, res) => {
     }
 
     const savedMonitoring = await getMonitoringByDate(lahanId, date);
-    const insight = buildDailyInsight(lahan, savedMonitoring, date);
-    const scheduleResult = await saveSystemSchedule({ lahan, userId });
-
-    insertNotification({
+    const monitoringInsight = buildDailyInsight(lahan, savedMonitoring, date);
+    const phaseInsight = buildPhaseInsight(lahan, date);
+    const latestMonitoring = await getLatestMonitoring(lahanId);
+    const scheduleResult = await saveSystemSchedule({
+      lahan,
       userId,
-      title: "Monitoring Tanaman Disimpan",
-      message:
-        insight.status === "perlu_perhatian"
-          ? "Sistem menemukan kondisi yang perlu diperhatikan. Buka kalender untuk melihat rekomendasi."
-          : "Kondisi tanaman berhasil dicatat.",
+      monitoring: latestMonitoring,
     });
+
+    await deleteNotificationsByMonitoringId({
+      userId,
+      monitoringId,
+    });
+
+    const savedIsLatest =
+      savedMonitoring?.id &&
+      latestMonitoring?.id &&
+      sameId(savedMonitoring.id, latestMonitoring.id);
+    let notifications = [];
+
+    if (
+      savedIsLatest &&
+      normalizeText(monitoringInsight.status) === "perlu_perhatian" &&
+      scheduleResult.adaptive_activities.length > 0
+    ) {
+      notifications = await createAdaptiveActivityNotifications({
+        userId,
+        lahan,
+        monitoring: savedMonitoring,
+        insight: monitoringInsight,
+        activities: scheduleResult.adaptive_activities,
+        refreshExisting: true,
+      });
+    } else {
+      const notification = await createInsightNotification({
+        userId,
+        lahan,
+        insight:
+          normalizeText(monitoringInsight.status) === "perlu_perhatian"
+            ? monitoringInsight
+            : phaseInsight,
+        date,
+        monitoringId,
+        refreshExisting: true,
+      });
+
+      if (notification) notifications = [notification];
+    }
 
     return res.json({
       status: true,
@@ -1736,8 +2157,9 @@ exports.createMonitoringKalender = async (req, res) => {
         : "Monitoring harian berhasil disimpan",
       id: monitoringId,
       data: savedMonitoring,
-      insight,
+      insight: monitoringInsight,
       calendar_update: scheduleResult,
+      notifications,
     });
   } catch (error) {
     console.error("ERROR SAVE MONITORING HARIAN:", error);
@@ -1864,6 +2286,21 @@ exports.updateStatusKalender = async (req, res) => {
 
     if (result.affectedRows === 0) {
       return sendError(res, 404, "Kegiatan tidak ditemukan");
+    }
+
+    if (["selesai", "dilewati"].includes(status)) {
+      await query(
+        `
+          UPDATE notifikasi
+          SET
+            is_read = 1,
+            read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+          WHERE kalender_id = ?
+            AND user_id = ?
+            AND role = 'petani'
+        `,
+        [id, userId]
+      );
     }
 
     return res.json({
@@ -2027,10 +2464,23 @@ exports.createKalender = async (req, res) => {
       ]
     );
 
-    insertNotification({
+    const targetUrl = buildCalendarLink({
+      calendarId: result.insertId,
+      lahanId,
+      date,
+    });
+
+    await insertNotification({
       userId,
-      title: "Jadwal Budidaya Baru",
-      message: `${activityName} berhasil ditambahkan ke kalender.`,
+      calendarId: result.insertId,
+      lahanId,
+      title: `Jadwal Budidaya Baru: ${String(activityName).trim()}`,
+      message: `${String(activityName).trim()} dijadwalkan pada ${formatTanggalIndonesia(
+        date
+      )} pukul ${String(time || "08:00").slice(0, 5)}.`,
+      type: "jadwal",
+      priority: "sedang",
+      targetUrl,
     });
 
     return res.status(201).json({
@@ -2059,6 +2509,10 @@ exports.deleteKalender = async (req, res) => {
     }
 
     if (normalizeText(item.sumber) === "manual") {
+      await deleteNotificationsByCalendarIds({
+        userId,
+        calendarIds: [id],
+      });
       await query("DELETE FROM kalender_budidaya WHERE id = ?", [id]);
 
       return res.json({
